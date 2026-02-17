@@ -1,11 +1,11 @@
 using PepperDash.Essentials.Core;
 
-namespace PepperDash.Essentials.Plugins.Slack.Webhooks
+namespace PepperDash.Essentials.Plugins.Slack
 {
     /// <summary>
     /// Slack Webhooks Bridge Join Map
     /// </summary>
-    public class SlackWebhooksBridgeJoinMap : JoinMapBaseAdvanced
+    public class SlackBridgeJoinMap : JoinMapBaseAdvanced
     {
         #region Digital
 
@@ -236,8 +236,8 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         /// Constructor to use when instantiating this Join Map without inheriting from it
         /// </summary>
         /// <param name="joinStart">Join this join map will start at</param>
-        public SlackWebhooksBridgeJoinMap(uint joinStart)
-            : base(joinStart, typeof(SlackWebhooksBridgeJoinMap))
+        public SlackBridgeJoinMap(uint joinStart)
+            : base(joinStart, typeof(SlackBridgeJoinMap))
         {
         }
 

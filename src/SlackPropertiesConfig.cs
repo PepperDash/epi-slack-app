@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 
-namespace PepperDash.Essentials.Plugins.Slack.Webhooks
+namespace PepperDash.Essentials.Plugins.Slack
 {
-    public class SlackWebhooksPropertiesConfig
+    public class SlackPropertiesConfig
     {
         /// <summary>
         /// The Slack Incoming Webhook URL (use this OR botToken, not both)
@@ -35,7 +35,7 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         [JsonProperty("defaultIconEmoji")]
         public string DefaultIconEmoji { get; set; }
 
-        public SlackWebhooksPropertiesConfig()
+        public SlackPropertiesConfig()
         {
         }
     }

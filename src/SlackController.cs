@@ -10,17 +10,17 @@ using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Bridges;
 using PepperDash.Essentials.Core.Config;
 
-namespace PepperDash.Essentials.Plugins.Slack.Webhooks
+namespace PepperDash.Essentials.Plugins.Slack
 {
-    public class SlackWebhooksController : EssentialsBridgeableDevice
+    public class SlackController : EssentialsBridgeableDevice
     {
         private const string SlackApiUrl = "https://slack.com/api/chat.postMessage";
 
-        private readonly SlackWebhooksPropertiesConfig _config;
-
-        public string WebhookUrl { get; private set; }
-        public string BotToken { get; private set; }
-        public string DefaultChannel { get; private set; }
+        private string WebhookUrl;
+        private string BotToken;
+        internal string DefaultUsername;
+        private string DefaultChannel;
+        internal string DefaultIconEmoji;
 
         private readonly HttpClient _httpClient;
 
@@ -84,14 +84,15 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
 
         #endregion
 
-        public SlackWebhooksController(string key, string name, SlackWebhooksPropertiesConfig propertiesConfig)
+        public SlackController(string key, string name, SlackPropertiesConfig propertiesConfig)
             : base(key, name)
         {
-            _config = propertiesConfig;
+            //_config = propertiesConfig;
             WebhookUrl = propertiesConfig.WebhookUrl;
             BotToken = propertiesConfig.BotToken;
             DefaultChannel = propertiesConfig.DefaultChannel;
-
+            DefaultUsername = propertiesConfig.DefaultUsername;
+            DefaultIconEmoji = propertiesConfig.DefaultIconEmoji;
             _httpClient = new HttpClient
             {
                 Timeout = TimeSpan.FromSeconds(30)
@@ -106,22 +107,6 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
             IsBusyBotFeedback = new BoolFeedback(key + "-IsBusyBot", () => _isBusyBot);
             LastSendSuccessfulBotFeedback = new BoolFeedback(key + "-LastSendSuccessfulBot", () => _lastSendSuccessfulBot);
             CurrentChannelBotFeedback = new StringFeedback(key + "-ChannelBot", () => GetCurrentChannelBot());
-        }
-
-        /// <summary>
-        /// Gets the current webhook channel (override if set, otherwise default)
-        /// </summary>
-        private string GetCurrentChannelWebhook()
-        {
-            return !string.IsNullOrEmpty(_currentChannelWebhook) ? _currentChannelWebhook : DefaultChannel ?? string.Empty;
-        }
-
-        /// <summary>
-        /// Gets the current bot channel (override if set, otherwise default)
-        /// </summary>
-        private string GetCurrentChannelBot()
-        {
-            return !string.IsNullOrEmpty(_currentChannelBot) ? _currentChannelBot : DefaultChannel ?? string.Empty;
         }
 
         public override void Initialize()
@@ -144,7 +129,16 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
             }
         }
 
+
         #region Webhook Methods
+
+        /// <summary>
+        /// Gets the current webhook channel (override if set, otherwise default)
+        /// </summary>
+        public string GetCurrentChannelWebhook()
+        {
+            return !string.IsNullOrEmpty(_currentChannelWebhook) ? _currentChannelWebhook : DefaultChannel ?? string.Empty;
+        }
 
         /// <summary>
         /// Sets the message to be sent on the next webhook trigger
@@ -209,6 +203,14 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         #endregion
 
         #region Bot Methods
+
+        /// <summary>
+        /// Gets the current bot channel (override if set, otherwise default)
+        /// </summary>
+        public string GetCurrentChannelBot()
+        {
+            return !string.IsNullOrEmpty(_currentChannelBot) ? _currentChannelBot : DefaultChannel ?? string.Empty;
+        }
 
         /// <summary>
         /// Sets the message to be sent on the next bot trigger
@@ -299,15 +301,15 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
                 {
                     Text = message,
                     Channel = GetCurrentChannelWebhook(),
-                    Username = _config.DefaultUsername,
-                    IconEmoji = _config.DefaultIconEmoji
+                    Username = DefaultUsername,
+                    IconEmoji = DefaultIconEmoji
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
                 this.LogDebug("Sending Slack message via webhook: {0}", json);
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync(_config.WebhookUrl, content);
+                var response = await _httpClient.PostAsync(WebhookUrl, content);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -372,15 +374,15 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
                 {
                     Channel = channel,
                     Text = message,
-                    Username = _config.DefaultUsername,
-                    IconEmoji = _config.DefaultIconEmoji
+                    Username = DefaultUsername,
+                    IconEmoji = DefaultIconEmoji
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
                 this.LogDebug("Sending Slack message via Bot API to {0}: {1}", channel, message);
 
                 var request = new HttpRequestMessage(HttpMethod.Post, SlackApiUrl);
-                request.Headers.Add("Authorization", "Bearer " + _config.BotToken);
+                request.Headers.Add("Authorization", "Bearer " + BotToken);
                 request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.SendAsync(request);
@@ -425,7 +427,7 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
 
         public override void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
         {
-            var joinMap = new SlackWebhooksBridgeJoinMap(joinStart);
+            var joinMap = new SlackBridgeJoinMap(joinStart);
 
             // This adds the join map to the collection on the bridge
             bridge?.AddJoinMap(Key, joinMap);

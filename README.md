@@ -30,6 +30,8 @@ Type: `slackWebhooks`
 
 **Option 1: Using Webhook URL (Simple, but limited to one channel)**
 
+The example below uses the `secretstore` to allow users to add the values using the console commands.
+
 ```json
 {
 	"key": "slack-webhooks-1",
@@ -38,7 +40,12 @@ Type: `slackWebhooks`
 	"type": "slackWebhooks",
 	"group": "api",
 	"properties": {
-		"webhookUrl": "<YOUR_SLACK_WEBHOOK_URL>",
+		"webhookUrl": {
+			"secret": {
+				"provider": "default",
+				"key": "webhookUrl"
+			}
+		},
 		"defaultUsername": "Crestron System",
 		"defaultIconEmoji": ":robot_face:",
 		"defaultChannel": "#general"
@@ -48,6 +55,8 @@ Type: `slackWebhooks`
 
 **Option 2: Using Bot Token (Flexible, can send to any channel or DM users)**
 
+The example below uses the `secretstore` to allow users to add the values using the console commands.
+
 ```json
 {
 	"key": "slack-webhooks-1",
@@ -56,7 +65,12 @@ Type: `slackWebhooks`
 	"type": "slackWebhooks",
 	"group": "api",
 	"properties": {
-		"botToken": "<YOUR_SLACK_BOT_TOKEN>",
+		"botToken": {
+			"secret": {
+				"provider": "default",
+				"key": "botToken"
+			}
+		},
 		"defaultUsername": "Crestron System",
 		"defaultIconEmoji": ":robot_face:",
 		"defaultChannel": "#general"
@@ -64,15 +78,29 @@ Type: `slackWebhooks`
 }
 ```
 
+### Secret Store
+
+**Set the secrets**
+```c#
+setsecret:1 default webhookUrl {SLACK-WEBHOOK-URL}
+setsecret:1 default botToken {SLACK-BOT-TOKEN}
+```
+
+**Update the secrets**
+```c#
+updatesecret:1 default webhookUrl {UPDATED-WEBHOOK-URL}
+updatesecret:1 default botToken {UPDATED-BOT-TOKEN}
+```
+
 ### Properties
 
-| Property           | Type   | Required                  | Description                                                |
-| ------------------ | ------ | ------------------------- | ---------------------------------------------------------- |
-| `webhookUrl`       | string | Yes (if no botToken)      | The Slack Incoming Webhook URL                             |
-| `botToken`         | string | Yes (if no webhookUrl)    | Slack Bot Token (starts with `xoxb-`). Allows DMs & any channel |
-| `defaultUsername`  | string | No                        | Override the default username for messages                 |
-| `defaultIconEmoji` | string | No                        | Override the default icon (e.g., `:robot_face:`)           |
-| `defaultChannel`   | string | No (Yes for Bot Token)    | Default channel or user to send messages to                |
+| Property           | Type   | Required               | Description                                                     |
+| ------------------ | ------ | ---------------------- | --------------------------------------------------------------- |
+| `webhookUrl`       | string | Yes (if no botToken)   | The Slack Incoming Webhook URL                                  |
+| `botToken`         | string | Yes (if no webhookUrl) | Slack Bot Token (starts with `xoxb-`). Allows DMs & any channel |
+| `defaultUsername`  | string | No                     | Override the default username for messages                      |
+| `defaultIconEmoji` | string | No                     | Override the default icon (e.g., `:robot_face:`)                |
+| `defaultChannel`   | string | No (Yes for Bot Token) | Default channel or user to send messages to                     |
 
 ### Bridge
 
@@ -96,28 +124,28 @@ Type: `slackWebhooks`
 
 ### Digital Joins
 
-| Join | Direction  | Description                                            |
-| ---- | ---------- | ------------------------------------------------------ |
-| 2    | From SIMPL | Pulse to send the pending webhook message              |
-| 2    | To SIMPL   | High when webhook is sending (busy indicator)          |
-| 3    | To SIMPL   | High if last webhook send was successful               |
-| 4    | From SIMPL | Pulse to reset webhook channel to default              |
-| 7    | From SIMPL | Pulse to send the pending bot message                  |
-| 7    | To SIMPL   | High when bot is sending (busy indicator)              |
-| 8    | To SIMPL   | High if last bot send was successful                   |
-| 9    | From SIMPL | Pulse to reset bot channel to default                  |
+| Join | Direction  | Description                                   |
+| ---- | ---------- | --------------------------------------------- |
+| 2    | From SIMPL | Pulse to send the pending webhook message     |
+| 2    | To SIMPL   | High when webhook is sending (busy indicator) |
+| 3    | To SIMPL   | High if last webhook send was successful      |
+| 4    | From SIMPL | Pulse to reset webhook channel to default     |
+| 7    | From SIMPL | Pulse to send the pending bot message         |
+| 7    | To SIMPL   | High when bot is sending (busy indicator)     |
+| 8    | To SIMPL   | High if last bot send was successful          |
+| 9    | From SIMPL | Pulse to reset bot channel to default         |
 
 ### Serial Joins
 
-| Join | Direction    | Description                                                           |
-| ---- | ------------ | --------------------------------------------------------------------- |
-| 1    | To SIMPL     | Device name                                                           |
-| 2    | From SIMPL   | Set webhook message text (use digital join 2 to trigger send)         |
-| 3    | From SIMPL   | Send webhook message directly (sends immediately when received)       |
-| 4    | To/From SIMPL| Webhook channel override (feedback shows current)                     |
-| 7    | From SIMPL   | Set bot message text (use digital join 7 to trigger send)             |
-| 8    | From SIMPL   | Send bot message directly (sends immediately when received)           |
-| 9    | To/From SIMPL| Bot channel/user override (feedback shows current)                    |
+| Join | Direction     | Description                                                     |
+| ---- | ------------- | --------------------------------------------------------------- |
+| 1    | To SIMPL      | Device name                                                     |
+| 2    | From SIMPL    | Set webhook message text (use digital join 2 to trigger send)   |
+| 3    | From SIMPL    | Send webhook message directly (sends immediately when received) |
+| 4    | To/From SIMPL | Webhook channel override (feedback shows current)               |
+| 7    | From SIMPL    | Set bot message text (use digital join 7 to trigger send)       |
+| 8    | From SIMPL    | Send bot message directly (sends immediately when received)     |
+| 9    | To/From SIMPL | Bot channel/user override (feedback shows current)              |
 
 ## Usage
 
@@ -243,11 +271,11 @@ Use the Bot Token in your Essentials configuration:
 
 With a Bot Token, you can set the channel dynamically:
 
-| Target | Format | Example |
-|--------|--------|---------|
-| Public channel | `#channel-name` | `#general` |
-| Private channel | `#channel-name` | `#private-room` (bot must be invited) |
-| Direct message | `@username` or User ID | `@john.smith` or `U0123456789` |
+| Target          | Format                 | Example                               |
+| --------------- | ---------------------- | ------------------------------------- |
+| Public channel  | `#channel-name`        | `#general`                            |
+| Private channel | `#channel-name`        | `#private-room` (bot must be invited) |
+| Direct message  | `@username` or User ID | `@john.smith` or `U0123456789`        |
 
 **Note:** To DM a user, either:
 - Use their User ID (most reliable): `U0123456789`

@@ -28,6 +28,8 @@ Provided under MIT license
 
 Type: `slackWebhooks`
 
+**Option 1: Using Webhook URL (Simple, but limited to one channel)**
+
 ```json
 {
 	"key": "slack-webhooks-1",
@@ -44,14 +46,33 @@ Type: `slackWebhooks`
 }
 ```
 
+**Option 2: Using Bot Token (Flexible, can send to any channel or DM users)**
+
+```json
+{
+	"key": "slack-webhooks-1",
+	"uid": 1,
+	"name": "Slack Webhooks",
+	"type": "slackWebhooks",
+	"group": "api",
+	"properties": {
+		"botToken": "<YOUR_SLACK_BOT_TOKEN>",
+		"defaultUsername": "Crestron System",
+		"defaultIconEmoji": ":robot_face:",
+		"defaultChannel": "#general"
+	}
+}
+```
+
 ### Properties
 
-| Property           | Type   | Required | Description                                                      |
-| ------------------ | ------ | -------- | ---------------------------------------------------------------- |
-| `webhookUrl`       | string | Yes      | The Slack Incoming Webhook URL                                   |
-| `defaultUsername`  | string | No       | Override the default username for messages                       |
-| `defaultIconEmoji` | string | No       | Override the default icon (e.g., `:robot_face:`)                 |
-| `defaultChannel`   | string | No       | Override the default channel (requires additional webhook scope) |
+| Property           | Type   | Required                  | Description                                                |
+| ------------------ | ------ | ------------------------- | ---------------------------------------------------------- |
+| `webhookUrl`       | string | Yes (if no botToken)      | The Slack Incoming Webhook URL                             |
+| `botToken`         | string | Yes (if no webhookUrl)    | Slack Bot Token (starts with `xoxb-`). Allows DMs & any channel |
+| `defaultUsername`  | string | No                        | Override the default username for messages                 |
+| `defaultIconEmoji` | string | No                        | Override the default icon (e.g., `:robot_face:`)           |
+| `defaultChannel`   | string | No (Yes for Bot Token)    | Default channel or user to send messages to                |
 
 ### Bridge
 
@@ -75,26 +96,46 @@ Type: `slackWebhooks`
 
 ### Digital Joins
 
-| Join | Direction  | Description                                        |
-| ---- | ---------- | -------------------------------------------------- |
-| 1    | From SIMPL | Pulse to send the pending message to Slack         |
-| 2    | To SIMPL   | High when a message is being sent (busy indicator) |
-| 3    | To SIMPL   | High if the last message send was successful       |
+| Join | Direction  | Description                                            |
+| ---- | ---------- | ------------------------------------------------------ |
+| 2    | From SIMPL | Pulse to send the pending webhook message              |
+| 2    | To SIMPL   | High when webhook is sending (busy indicator)          |
+| 3    | To SIMPL   | High if last webhook send was successful               |
+| 4    | From SIMPL | Pulse to reset webhook channel to default              |
+| 7    | From SIMPL | Pulse to send the pending bot message                  |
+| 7    | To SIMPL   | High when bot is sending (busy indicator)              |
+| 8    | To SIMPL   | High if last bot send was successful                   |
+| 9    | From SIMPL | Pulse to reset bot channel to default                  |
 
 ### Serial Joins
 
-| Join | Direction  | Description                                                         |
-| ---- | ---------- | ------------------------------------------------------------------- |
-| 1    | To SIMPL   | Device name                                                         |
-| 2    | From SIMPL | Set the message text to send (use digital join 1 to trigger send)   |
-| 3    | From SIMPL | Send a message directly (sends immediately when string is received) |
+| Join | Direction    | Description                                                           |
+| ---- | ------------ | --------------------------------------------------------------------- |
+| 1    | To SIMPL     | Device name                                                           |
+| 2    | From SIMPL   | Set webhook message text (use digital join 2 to trigger send)         |
+| 3    | From SIMPL   | Send webhook message directly (sends immediately when received)       |
+| 4    | To/From SIMPL| Webhook channel override (feedback shows current)                     |
+| 7    | From SIMPL   | Set bot message text (use digital join 7 to trigger send)             |
+| 8    | From SIMPL   | Send bot message directly (sends immediately when received)           |
+| 9    | To/From SIMPL| Bot channel/user override (feedback shows current)                    |
 
 ## Usage
 
-There are two ways to send messages:
+### Webhook Method (Joins 2-4)
 
-1. **Two-step approach**: Set the message text on serial join 2, then pulse digital join 1 to send
-2. **Direct send**: Send a string on serial join 3 - the message is sent immediately
+Use these joins when you have a webhook URL configured:
+
+1. **Two-step approach**: Set message text on serial join 2, then pulse digital join 2 to send
+2. **Direct send**: Send a string on serial join 3 - sends immediately
+3. **Channel override**: Set channel on serial join 4 (note: may not work with newer Slack webhooks)
+
+### Bot Method (Joins 7-9)
+
+Use these joins when you have a bot token configured:
+
+1. **Two-step approach**: Set message text on serial join 7, then pulse digital join 7 to send
+2. **Direct send**: Send a string on serial join 8 - sends immediately
+3. **Dynamic routing**: Set channel/user on serial join 9 (e.g., `#general`, `@username`, or `U0123456789`)
 
 
 ## Creating Slack App
@@ -155,4 +196,72 @@ You can customize how your messages appear in Slack:
 - **Keep your webhook URL secret** - anyone with the URL can post messages to your channel
 - Webhook URLs do not expire but can be revoked from the Slack App settings
 - Consider creating separate webhooks for different environments (dev/prod)
+
+## Creating Slack Bot (For Bot Token)
+
+Bot Tokens allow you to send messages to any channel or direct message users. Follow these steps:
+
+### Step 1: Create a Slack App
+
+1. Go to the [Slack API Apps page](https://api.slack.com/apps)
+2. Click **Create New App**
+3. Select **From scratch**
+4. Enter an **App Name** (e.g., "Crestron Bot")
+5. Select the **Workspace** where you want to install the app
+6. Click **Create App**
+
+### Step 2: Add Bot Scopes
+
+1. In your app's settings, navigate to **Features** > **OAuth & Permissions**
+2. Scroll to **Scopes** > **Bot Token Scopes**
+3. Click **Add an OAuth Scope** and add these scopes:
+   - `chat:write` - Required to send messages
+   - `chat:write.public` - Required to send to channels the bot hasn't joined
+   - `users:read` - Optional, for looking up user IDs
+
+### Step 3: Install App to Workspace
+
+1. Scroll up to **OAuth Tokens for Your Workspace**
+2. Click **Install to Workspace**
+3. Review the permissions and click **Allow**
+4. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
+
+### Step 4: Configure the Plugin
+
+Use the Bot Token in your Essentials configuration:
+
+```json
+{
+	"properties": {
+		"botToken": "<YOUR_BOT_TOKEN>",
+		"defaultChannel": "#general"
+	}
+}
+```
+
+### Sending to Channels vs Users
+
+With a Bot Token, you can set the channel dynamically:
+
+| Target | Format | Example |
+|--------|--------|---------|
+| Public channel | `#channel-name` | `#general` |
+| Private channel | `#channel-name` | `#private-room` (bot must be invited) |
+| Direct message | `@username` or User ID | `@john.smith` or `U0123456789` |
+
+**Note:** To DM a user, either:
+- Use their User ID (most reliable): `U0123456789`
+- The bot must have been added to a conversation with them first
+
+### Finding a User ID
+
+1. In Slack, click on the user's profile
+2. Click the **...** (More) button
+3. Select **Copy member ID**
+
+### Bot Token Security Notes
+
+- **Keep your bot token secret** - it grants access to send messages as your bot
+- Bot tokens do not expire but can be revoked from the Slack App settings
+- Consider using different apps/tokens for different environments
 

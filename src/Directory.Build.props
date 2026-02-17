@@ -6,7 +6,7 @@
     <Company>PepperDash Technology</Company>
     <Product>PepperDash Essentials Plugin</Product>
     <Copyright>Copyright © 2026 PepperDash Technology</Copyright>
-    <RepositoryUrl>https://github.com/PepperDash/epi-slack-webhooks.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/PepperDash/epi-slack-app.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Crestron; 4series</PackageTags>
     <PackageOutputPath>..\output</PackageOutputPath>

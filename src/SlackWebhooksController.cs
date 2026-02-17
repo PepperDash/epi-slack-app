@@ -17,13 +17,18 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         private const string SlackApiUrl = "https://slack.com/api/chat.postMessage";
 
         private readonly SlackWebhooksPropertiesConfig _config;
+
+        public string WebhookUrl { get; private set; }
+        public string BotToken { get; private set; }
+        public string DefaultChannel { get; private set; }
+
         private readonly HttpClient _httpClient;
 
         // Webhook state
-        private string _pendingMessage;
-        private bool _isBusy;
-        private bool _lastSendSuccessful;
-        private string _currentChannel;
+        private string _pendingMessageWebhook;
+        private bool _isBusyWebhook;
+        private bool _lastSendSuccessfulWebhook;
+        private string _currentChannelWebhook;
 
         // Bot state
         private string _pendingMessageBot;
@@ -31,17 +36,15 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         private bool _lastSendSuccessfulBot;
         private string _currentChannelBot;
 
-        private string _defaultChannel => _config.DefaultChannel;
-
         /// <summary>
         /// Indicates if webhook URL is configured
         /// </summary>
-        public bool WebhookConfigured => !string.IsNullOrEmpty(_config.WebhookUrl);
+        public bool WebhookConfigured => !string.IsNullOrEmpty(WebhookUrl);
 
         /// <summary>
         /// Indicates if bot token is configured
         /// </summary>
-        public bool BotTokenConfigured => !string.IsNullOrEmpty(_config.BotToken);
+        public bool BotTokenConfigured => !string.IsNullOrEmpty(BotToken);
 
         #region Webhook Feedbacks
 
@@ -85,13 +88,19 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
             : base(key, name)
         {
             _config = propertiesConfig;
-            _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
+            WebhookUrl = propertiesConfig.WebhookUrl;
+            BotToken = propertiesConfig.BotToken;
+            DefaultChannel = propertiesConfig.DefaultChannel;
+
+            _httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(30)
+            };
 
             // Webhook feedbacks
-            IsBusyFeedback = new BoolFeedback(key + "-IsBusy", () => _isBusy);
-            LastSendSuccessfulFeedback = new BoolFeedback(key + "-LastSendSuccessful", () => _lastSendSuccessful);
-            CurrentChannelFeedback = new StringFeedback(key + "-Channel", () => GetCurrentChannel());
+            IsBusyFeedback = new BoolFeedback(key + "-IsBusy", () => _isBusyWebhook);
+            LastSendSuccessfulFeedback = new BoolFeedback(key + "-LastSendSuccessful", () => _lastSendSuccessfulWebhook);
+            CurrentChannelFeedback = new StringFeedback(key + "-Channel", () => GetCurrentChannelWebhook());
 
             // Bot feedbacks
             IsBusyBotFeedback = new BoolFeedback(key + "-IsBusyBot", () => _isBusyBot);
@@ -102,9 +111,9 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         /// <summary>
         /// Gets the current webhook channel (override if set, otherwise default)
         /// </summary>
-        private string GetCurrentChannel()
+        private string GetCurrentChannelWebhook()
         {
-            return !string.IsNullOrEmpty(_currentChannel) ? _currentChannel : _defaultChannel ?? string.Empty;
+            return !string.IsNullOrEmpty(_currentChannelWebhook) ? _currentChannelWebhook : DefaultChannel ?? string.Empty;
         }
 
         /// <summary>
@@ -112,7 +121,7 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         /// </summary>
         private string GetCurrentChannelBot()
         {
-            return !string.IsNullOrEmpty(_currentChannelBot) ? _currentChannelBot : _defaultChannel ?? string.Empty;
+            return !string.IsNullOrEmpty(_currentChannelBot) ? _currentChannelBot : DefaultChannel ?? string.Empty;
         }
 
         public override void Initialize()
@@ -141,31 +150,31 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         /// Sets the message to be sent on the next webhook trigger
         /// </summary>
         /// <param name="message">The message text</param>
-        public void SetMessage(string message)
+        public void SetMessageWebhook(string message)
         {
-            _pendingMessage = message;
+            _pendingMessageWebhook = message;
             this.LogDebug("Webhook message set: {0}", message);
         }
 
         /// <summary>
         /// Sends the pending message to Slack via webhook
         /// </summary>
-        public void SendMessage()
+        public void SendMessageWebhook()
         {
-            if (string.IsNullOrEmpty(_pendingMessage))
+            if (string.IsNullOrEmpty(_pendingMessageWebhook))
             {
                 this.LogWarning("No webhook message to send");
                 return;
             }
 
-            SendWebhookMessageAsync(_pendingMessage);
+            SendWebhookMessageAsync(_pendingMessageWebhook);
         }
 
         /// <summary>
         /// Sends a message directly to Slack via webhook without setting it first
         /// </summary>
         /// <param name="message">The message to send</param>
-        public void SendMessageDirect(string message)
+        public void SendMessageDirectWebhook(string message)
         {
             if (string.IsNullOrEmpty(message))
             {
@@ -180,9 +189,9 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         /// Sets the webhook channel override
         /// </summary>
         /// <param name="channel">The channel to send messages to</param>
-        public void SetChannel(string channel)
+        public void SetChannelWebhook(string channel)
         {
-            _currentChannel = channel;
+            _currentChannelWebhook = channel;
             this.LogDebug("Webhook channel override set to: {0}", channel);
             CurrentChannelFeedback.FireUpdate();
         }
@@ -190,10 +199,10 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         /// <summary>
         /// Resets the webhook channel to the default configured channel
         /// </summary>
-        public void ResetChannel()
+        public void ResetChannelWebhook()
         {
-            _currentChannel = null;
-            this.LogDebug("Webhook channel reset to default: {0}", _defaultChannel ?? "(none)");
+            _currentChannelWebhook = null;
+            this.LogDebug("Webhook channel reset to default: {0}", DefaultChannel ?? "(none)");
             CurrentChannelFeedback.FireUpdate();
         }
 
@@ -257,7 +266,7 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
         public void ResetChannelBot()
         {
             _currentChannelBot = null;
-            this.LogDebug("Bot channel reset to default: {0}", _defaultChannel ?? "(none)");
+            this.LogDebug("Bot channel reset to default: {0}", DefaultChannel ?? "(none)");
             CurrentChannelBotFeedback.FireUpdate();
         }
 
@@ -270,18 +279,18 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
             if (!WebhookConfigured)
             {
                 this.LogError("Webhook URL is not configured");
-                _lastSendSuccessful = false;
+                _lastSendSuccessfulWebhook = false;
                 LastSendSuccessfulFeedback.FireUpdate();
                 return;
             }
 
-            if (_isBusy)
+            if (_isBusyWebhook)
             {
                 this.LogWarning("Webhook is busy sending a message, please wait");
                 return;
             }
 
-            _isBusy = true;
+            _isBusyWebhook = true;
             IsBusyFeedback.FireUpdate();
 
             try
@@ -289,7 +298,7 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
                 var payload = new SlackMessagePayload
                 {
                     Text = message,
-                    Channel = GetCurrentChannel(),
+                    Channel = GetCurrentChannelWebhook(),
                     Username = _config.DefaultUsername,
                     IconEmoji = _config.DefaultIconEmoji
                 };
@@ -303,23 +312,23 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
                 if (response.IsSuccessStatusCode)
                 {
                     this.LogInformation("Message sent successfully via webhook");
-                    _lastSendSuccessful = true;
+                    _lastSendSuccessfulWebhook = true;
                 }
                 else
                 {
                     var responseBody = await response.Content.ReadAsStringAsync();
                     this.LogError("Failed to send webhook message. Status: {0}, Response: {1}", response.StatusCode, responseBody);
-                    _lastSendSuccessful = false;
+                    _lastSendSuccessfulWebhook = false;
                 }
             }
             catch (Exception ex)
             {
                 this.LogError("Exception sending webhook message: {0}", ex.Message);
-                _lastSendSuccessful = false;
+                _lastSendSuccessfulWebhook = false;
             }
             finally
             {
-                _isBusy = false;
+                _isBusyWebhook = false;
                 IsBusyFeedback.FireUpdate();
                 LastSendSuccessfulFeedback.FireUpdate();
             }
@@ -431,8 +440,8 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
             this.LogInformation("Linking to Bridge Type {type}", GetType().Name);
 
             // Webhook Digital joins
-            trilist.SetSigTrueAction(joinMap.SendMessageWebhook.JoinNumber, SendMessage);
-            trilist.SetSigTrueAction(joinMap.ResetChannelWebhook.JoinNumber, ResetChannel);
+            trilist.SetSigTrueAction(joinMap.SendMessageWebhook.JoinNumber, SendMessageWebhook);
+            trilist.SetSigTrueAction(joinMap.ResetChannelWebhook.JoinNumber, ResetChannelWebhook);
             IsBusyFeedback.LinkInputSig(trilist.BooleanInput[joinMap.IsBusyWebhook.JoinNumber]);
             LastSendSuccessfulFeedback.LinkInputSig(trilist.BooleanInput[joinMap.LastSendSuccessfulWebhook.JoinNumber]);
 
@@ -444,9 +453,9 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
 
             // Webhook Serial joins
             trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
-            trilist.SetStringSigAction(joinMap.MessageTextWebhook.JoinNumber, SetMessage);
-            trilist.SetStringSigAction(joinMap.SendMessageDirectWebhook.JoinNumber, SendMessageDirect);
-            trilist.SetStringSigAction(joinMap.ChannelWebhook.JoinNumber, SetChannel);
+            trilist.SetStringSigAction(joinMap.MessageTextWebhook.JoinNumber, SetMessageWebhook);
+            trilist.SetStringSigAction(joinMap.SendMessageDirectWebhook.JoinNumber, SendMessageDirectWebhook);
+            trilist.SetStringSigAction(joinMap.ChannelWebhook.JoinNumber, SetChannelWebhook);
             CurrentChannelFeedback.LinkInputSig(trilist.StringInput[joinMap.ChannelWebhook.JoinNumber]);
 
             // Bot Serial joins

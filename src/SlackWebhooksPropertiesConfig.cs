@@ -5,10 +5,17 @@ namespace PepperDash.Essentials.Plugins.Slack.Webhooks
     public class SlackWebhooksPropertiesConfig
     {
         /// <summary>
-        /// The Slack Incoming Webhook URL
+        /// The Slack Incoming Webhook URL (use this OR botToken, not both)
         /// </summary>
         [JsonProperty("webhookUrl")]
         public string WebhookUrl { get; set; }
+
+        /// <summary>
+        /// The Slack Bot Token (starts with xoxb-). Use this to send to any channel or DM users.
+        /// Requires chat:write scope. Use this OR webhookUrl, not both.
+        /// </summary>
+        [JsonProperty("botToken")]
+        public string BotToken { get; set; }
 
         /// <summary>
         /// Optional default channel override (requires webhook scope)

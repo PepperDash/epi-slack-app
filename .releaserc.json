@@ -27,9 +27,9 @@
   "branches": [
     "main",
     {
-      "name": "replace-me-feature-branch",
-      "prerelease": "replace-me-prerelease",
-      "channel": "replace-me-prerelease"
+      "name": "initial-development",
+      "prerelease": "initial-development",
+      "channel": "initial-development"
     }
   ]
 }

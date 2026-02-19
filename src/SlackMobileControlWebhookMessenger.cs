@@ -7,17 +7,23 @@ namespace PepperDash.Essentials.Plugins.Slack
 {
     public class SlackMobileControlWebhookMessenger : MessengerBase
     {
-        private readonly SlackController _controller;
+        private readonly SlackController controller;
 
         public SlackMobileControlWebhookMessenger(string key, string path, SlackController controller)
             : base(key, path, controller)
         {
-            _controller = controller;
+            this.controller = controller;
         }
 
         public void SendMessage(string message, string channel = null)
         {
-            _controller.SendMessageDirectWebhook(message);
+            if (string.IsNullOrEmpty(channel))
+            {
+                channel = controller.GetCurrentChannelWebhook();
+            }
+            this.LogInformation("SlackMobileControlWebhookMessenger: Sending message to channel {0}", channel);
+
+            controller.SendMessageDirectWebhook(message);
         }
 
         protected override void RegisterActions()
@@ -33,10 +39,10 @@ namespace PepperDash.Essentials.Plugins.Slack
             {
                 var status = new SlackMobileControlStateMessage
                 {
-                    Channel = _controller.GetCurrentChannelWebhook(),
+                    Channel = controller.GetCurrentChannelWebhook(),
                     Text = "Current Slack Controller Status",
-                    Username = _controller.DefaultUsername,
-                    IconEmoji = _controller.DefaultIconEmoji
+                    Username = controller.defaultUsername,
+                    IconEmoji = controller.defaultIconEmoji
                 };
 
                 PostStatusMessage(id, status);

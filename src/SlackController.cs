@@ -14,37 +14,40 @@ namespace PepperDash.Essentials.Plugins.Slack
 {
     public class SlackController : EssentialsBridgeableDevice
     {
-        private const string SlackApiUrl = "https://slack.com/api/chat.postMessage";
+        private const string slackApiUrl = "https://slack.com/api/chat.postMessage";
 
-        private string WebhookUrl;
-        private string BotToken;
-        internal string DefaultUsername;
-        private string DefaultChannel;
-        internal string DefaultIconEmoji;
+        private readonly string webhookUrl;
+        private readonly string botToken;
+        internal readonly string defaultUsername;
+        internal readonly string defaultChannel;
+        internal readonly string defaultIconEmoji;
 
-        private readonly HttpClient _httpClient;
+        private static readonly HttpClient httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
 
         // Webhook state
-        private string _pendingMessageWebhook;
-        private bool _isBusyWebhook;
-        private bool _lastSendSuccessfulWebhook;
-        private string _currentChannelWebhook;
+        private string pendingMessageWebhook;
+        private bool isBusyWebhook;
+        private bool lastSendSuccessfulWebhook;
+        private string currentChannelWebhook;
 
         // Bot state
-        private string _pendingMessageBot;
-        private bool _isBusyBot;
-        private bool _lastSendSuccessfulBot;
-        private string _currentChannelBot;
+        private string pendingMessageBot;
+        private bool isBusyBot;
+        private bool lastSendSuccessfulBot;
+        private string currentChannelBot;
 
         /// <summary>
         /// Indicates if webhook URL is configured
         /// </summary>
-        public bool WebhookConfigured => !string.IsNullOrEmpty(WebhookUrl);
+        public bool WebhookConfigured => !string.IsNullOrEmpty(webhookUrl);
 
         /// <summary>
         /// Indicates if bot token is configured
         /// </summary>
-        public bool BotTokenConfigured => !string.IsNullOrEmpty(BotToken);
+        public bool BotTokenConfigured => !string.IsNullOrEmpty(botToken);
 
         #region Webhook Feedbacks
 
@@ -87,25 +90,20 @@ namespace PepperDash.Essentials.Plugins.Slack
         public SlackController(string key, string name, SlackPropertiesConfig propertiesConfig)
             : base(key, name)
         {
-            //_config = propertiesConfig;
-            WebhookUrl = propertiesConfig.WebhookUrl;
-            BotToken = propertiesConfig.BotToken;
-            DefaultChannel = propertiesConfig.DefaultChannel;
-            DefaultUsername = propertiesConfig.DefaultUsername;
-            DefaultIconEmoji = propertiesConfig.DefaultIconEmoji;
-            _httpClient = new HttpClient
-            {
-                Timeout = TimeSpan.FromSeconds(30)
-            };
+            webhookUrl = propertiesConfig.WebhookUrl;
+            botToken = propertiesConfig.BotToken;
+            defaultChannel = propertiesConfig.DefaultChannel;
+            defaultUsername = propertiesConfig.DefaultUsername;
+            defaultIconEmoji = propertiesConfig.DefaultIconEmoji;
 
             // Webhook feedbacks
-            IsBusyFeedback = new BoolFeedback(key + "-IsBusy", () => _isBusyWebhook);
-            LastSendSuccessfulFeedback = new BoolFeedback(key + "-LastSendSuccessful", () => _lastSendSuccessfulWebhook);
+            IsBusyFeedback = new BoolFeedback(key + "-IsBusy", () => isBusyWebhook);
+            LastSendSuccessfulFeedback = new BoolFeedback(key + "-LastSendSuccessful", () => lastSendSuccessfulWebhook);
             CurrentChannelFeedback = new StringFeedback(key + "-Channel", () => GetCurrentChannelWebhook());
 
             // Bot feedbacks
-            IsBusyBotFeedback = new BoolFeedback(key + "-IsBusyBot", () => _isBusyBot);
-            LastSendSuccessfulBotFeedback = new BoolFeedback(key + "-LastSendSuccessfulBot", () => _lastSendSuccessfulBot);
+            IsBusyBotFeedback = new BoolFeedback(key + "-IsBusyBot", () => isBusyBot);
+            LastSendSuccessfulBotFeedback = new BoolFeedback(key + "-LastSendSuccessfulBot", () => lastSendSuccessfulBot);
             CurrentChannelBotFeedback = new StringFeedback(key + "-ChannelBot", () => GetCurrentChannelBot());
         }
 
@@ -137,7 +135,7 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public string GetCurrentChannelWebhook()
         {
-            return !string.IsNullOrEmpty(_currentChannelWebhook) ? _currentChannelWebhook : DefaultChannel ?? string.Empty;
+            return !string.IsNullOrEmpty(currentChannelWebhook) ? currentChannelWebhook : defaultChannel ?? string.Empty;
         }
 
         /// <summary>
@@ -146,7 +144,7 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// <param name="message">The message text</param>
         public void SetMessageWebhook(string message)
         {
-            _pendingMessageWebhook = message;
+            pendingMessageWebhook = message;
             this.LogDebug("Webhook message set: {0}", message);
         }
 
@@ -155,13 +153,13 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public void SendMessageWebhook()
         {
-            if (string.IsNullOrEmpty(_pendingMessageWebhook))
+            if (string.IsNullOrEmpty(pendingMessageWebhook))
             {
                 this.LogWarning("No webhook message to send");
                 return;
             }
 
-            SendWebhookMessageAsync(_pendingMessageWebhook);
+            SendWebhookMessageAsync(pendingMessageWebhook);
         }
 
         /// <summary>
@@ -185,7 +183,7 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// <param name="channel">The channel to send messages to</param>
         public void SetChannelWebhook(string channel)
         {
-            _currentChannelWebhook = channel;
+            currentChannelWebhook = channel;
             this.LogDebug("Webhook channel override set to: {0}", channel);
             CurrentChannelFeedback.FireUpdate();
         }
@@ -195,8 +193,8 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public void ResetChannelWebhook()
         {
-            _currentChannelWebhook = null;
-            this.LogDebug("Webhook channel reset to default: {0}", DefaultChannel ?? "(none)");
+            currentChannelWebhook = null;
+            this.LogDebug("Webhook channel reset to default: {0}", defaultChannel ?? "(none)");
             CurrentChannelFeedback.FireUpdate();
         }
 
@@ -209,7 +207,7 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public string GetCurrentChannelBot()
         {
-            return !string.IsNullOrEmpty(_currentChannelBot) ? _currentChannelBot : DefaultChannel ?? string.Empty;
+            return !string.IsNullOrEmpty(currentChannelBot) ? currentChannelBot : defaultChannel ?? string.Empty;
         }
 
         /// <summary>
@@ -218,7 +216,7 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// <param name="message">The message text</param>
         public void SetMessageBot(string message)
         {
-            _pendingMessageBot = message;
+            pendingMessageBot = message;
             this.LogDebug("Bot message set: {0}", message);
         }
 
@@ -227,13 +225,13 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public void SendMessageBot()
         {
-            if (string.IsNullOrEmpty(_pendingMessageBot))
+            if (string.IsNullOrEmpty(pendingMessageBot))
             {
                 this.LogWarning("No bot message to send");
                 return;
             }
 
-            SendBotMessageAsync(_pendingMessageBot);
+            SendBotMessageAsync(pendingMessageBot);
         }
 
         /// <summary>
@@ -257,7 +255,7 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// <param name="channel">The channel or user to send messages to</param>
         public void SetChannelBot(string channel)
         {
-            _currentChannelBot = channel;
+            currentChannelBot = channel;
             this.LogDebug("Bot channel override set to: {0}", channel);
             CurrentChannelBotFeedback.FireUpdate();
         }
@@ -267,8 +265,8 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public void ResetChannelBot()
         {
-            _currentChannelBot = null;
-            this.LogDebug("Bot channel reset to default: {0}", DefaultChannel ?? "(none)");
+            currentChannelBot = null;
+            this.LogDebug("Bot channel reset to default: {0}", defaultChannel ?? "(none)");
             CurrentChannelBotFeedback.FireUpdate();
         }
 
@@ -281,18 +279,18 @@ namespace PepperDash.Essentials.Plugins.Slack
             if (!WebhookConfigured)
             {
                 this.LogError("Webhook URL is not configured");
-                _lastSendSuccessfulWebhook = false;
+                lastSendSuccessfulWebhook = false;
                 LastSendSuccessfulFeedback.FireUpdate();
                 return;
             }
 
-            if (_isBusyWebhook)
+            if (isBusyWebhook)
             {
                 this.LogWarning("Webhook is busy sending a message, please wait");
                 return;
             }
 
-            _isBusyWebhook = true;
+            isBusyWebhook = true;
             IsBusyFeedback.FireUpdate();
 
             try
@@ -301,36 +299,36 @@ namespace PepperDash.Essentials.Plugins.Slack
                 {
                     Text = message,
                     Channel = GetCurrentChannelWebhook(),
-                    Username = DefaultUsername,
-                    IconEmoji = DefaultIconEmoji
+                    Username = defaultUsername,
+                    IconEmoji = defaultIconEmoji
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
                 this.LogDebug("Sending Slack message via webhook: {0}", json);
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync(WebhookUrl, content);
+                var response = await httpClient.PostAsync(webhookUrl, content);
 
                 if (response.IsSuccessStatusCode)
                 {
                     this.LogInformation("Message sent successfully via webhook");
-                    _lastSendSuccessfulWebhook = true;
+                    lastSendSuccessfulWebhook = true;
                 }
                 else
                 {
                     var responseBody = await response.Content.ReadAsStringAsync();
                     this.LogError("Failed to send webhook message. Status: {0}, Response: {1}", response.StatusCode, responseBody);
-                    _lastSendSuccessfulWebhook = false;
+                    lastSendSuccessfulWebhook = false;
                 }
             }
             catch (Exception ex)
             {
                 this.LogError("Exception sending webhook message: {0}", ex.Message);
-                _lastSendSuccessfulWebhook = false;
+                lastSendSuccessfulWebhook = false;
             }
             finally
             {
-                _isBusyWebhook = false;
+                isBusyWebhook = false;
                 IsBusyFeedback.FireUpdate();
                 LastSendSuccessfulFeedback.FireUpdate();
             }
@@ -345,7 +343,7 @@ namespace PepperDash.Essentials.Plugins.Slack
             if (!BotTokenConfigured)
             {
                 this.LogError("Bot Token is not configured");
-                _lastSendSuccessfulBot = false;
+                lastSendSuccessfulBot = false;
                 LastSendSuccessfulBotFeedback.FireUpdate();
                 return;
             }
@@ -354,18 +352,18 @@ namespace PepperDash.Essentials.Plugins.Slack
             if (string.IsNullOrEmpty(channel))
             {
                 this.LogError("Channel is required when using Bot Token");
-                _lastSendSuccessfulBot = false;
+                lastSendSuccessfulBot = false;
                 LastSendSuccessfulBotFeedback.FireUpdate();
                 return;
             }
 
-            if (_isBusyBot)
+            if (isBusyBot)
             {
                 this.LogWarning("Bot is busy sending a message, please wait");
                 return;
             }
 
-            _isBusyBot = true;
+            isBusyBot = true;
             IsBusyBotFeedback.FireUpdate();
 
             try
@@ -374,18 +372,18 @@ namespace PepperDash.Essentials.Plugins.Slack
                 {
                     Channel = channel,
                     Text = message,
-                    Username = DefaultUsername,
-                    IconEmoji = DefaultIconEmoji
+                    Username = defaultUsername,
+                    IconEmoji = defaultIconEmoji
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
                 this.LogDebug("Sending Slack message via Bot API to {0}: {1}", channel, message);
 
-                var request = new HttpRequestMessage(HttpMethod.Post, SlackApiUrl);
-                request.Headers.Add("Authorization", "Bearer " + BotToken);
+                var request = new HttpRequestMessage(HttpMethod.Post, slackApiUrl);
+                request.Headers.Add("Authorization", "Bearer " + botToken);
                 request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.SendAsync(request);
                 var responseBody = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -394,28 +392,28 @@ namespace PepperDash.Essentials.Plugins.Slack
                     if (apiResponse != null && apiResponse.Ok)
                     {
                         this.LogInformation("Message sent successfully via Bot API");
-                        _lastSendSuccessfulBot = true;
+                        lastSendSuccessfulBot = true;
                     }
                     else
                     {
                         this.LogError("Slack API error: {0}", apiResponse?.Error ?? "Unknown error");
-                        _lastSendSuccessfulBot = false;
+                        lastSendSuccessfulBot = false;
                     }
                 }
                 else
                 {
                     this.LogError("Failed to send bot message. Status: {0}, Response: {1}", response.StatusCode, responseBody);
-                    _lastSendSuccessfulBot = false;
+                    lastSendSuccessfulBot = false;
                 }
             }
             catch (Exception ex)
             {
                 this.LogError("Exception sending bot message: {0}", ex.Message);
-                _lastSendSuccessfulBot = false;
+                lastSendSuccessfulBot = false;
             }
             finally
             {
-                _isBusyBot = false;
+                isBusyBot = false;
                 IsBusyBotFeedback.FireUpdate();
                 LastSendSuccessfulBotFeedback.FireUpdate();
             }

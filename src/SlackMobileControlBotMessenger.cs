@@ -7,17 +7,23 @@ namespace PepperDash.Essentials.Plugins.Slack
 {
     public class SlackMobileControlBotMessenger : MessengerBase
     {
-        private readonly SlackController _controller;
+        private readonly SlackController controller;
 
         public SlackMobileControlBotMessenger(string key, string path, SlackController controller)
             : base(key, path, controller)
         {
-            _controller = controller;
+            this.controller = controller;
         }
 
         public void SendMessage(string message, string channel = null)
         {
-            _controller.SendMessageDirectBot(message);
+            if (string.IsNullOrEmpty(channel))
+            {
+                channel = controller.GetCurrentChannelBot();
+            }
+            this.LogInformation("SlackMobileControlBotMessenger: Sending message to channel {0}", channel);
+
+            controller.SendMessageDirectBot(message);
         }
 
         protected override void RegisterActions()
@@ -33,10 +39,10 @@ namespace PepperDash.Essentials.Plugins.Slack
             {
                 var status = new SlackMobileControlStateMessage
                 {
-                    Channel = _controller.GetCurrentChannelBot(),
+                    Channel = controller.GetCurrentChannelBot(),
                     Text = "Current Slack Controller Status",
-                    Username = _controller.DefaultUsername,
-                    IconEmoji = _controller.DefaultIconEmoji
+                    Username = controller.defaultUsername,
+                    IconEmoji = controller.defaultIconEmoji
                 };
 
                 PostStatusMessage(id, status);

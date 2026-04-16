@@ -305,19 +305,22 @@ namespace PepperDash.Essentials.Plugins.Slack
 
                 var json = JsonConvert.SerializeObject(payload);
                 this.LogDebug("Sending Slack message via webhook: {0}", json);
+                this.LogVerbose("Webhook request payload: {0}", json);
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await httpClient.PostAsync(webhookUrl, content);
+                var responseBody = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
                     this.LogInformation("Message sent successfully via webhook");
+                    this.LogVerbose("Webhook success - Payload: {0}, Response: {1}", json, responseBody);
                     lastSendSuccessfulWebhook = true;
                 }
                 else
                 {
-                    var responseBody = await response.Content.ReadAsStringAsync();
                     this.LogError("Failed to send webhook message. Status: {0}, Response: {1}", response.StatusCode, responseBody);
+                    this.LogVerbose("Webhook error - Payload: {0}, Status: {1}, Response: {2}", json, response.StatusCode, responseBody);
                     lastSendSuccessfulWebhook = false;
                 }
             }
@@ -378,6 +381,7 @@ namespace PepperDash.Essentials.Plugins.Slack
 
                 var json = JsonConvert.SerializeObject(payload);
                 this.LogDebug("Sending Slack message via Bot API to {0}: {1}", channel, message);
+                this.LogVerbose("Bot API request payload: {0}", json);
 
                 var request = new HttpRequestMessage(HttpMethod.Post, slackApiUrl);
                 request.Headers.Add("Authorization", "Bearer " + botToken);
@@ -392,17 +396,20 @@ namespace PepperDash.Essentials.Plugins.Slack
                     if (apiResponse != null && apiResponse.Ok)
                     {
                         this.LogInformation("Message sent successfully via Bot API");
+                        this.LogVerbose("Bot API success - Payload: {0}, Response: {1}", json, responseBody);
                         lastSendSuccessfulBot = true;
                     }
                     else
                     {
                         this.LogError("Slack API error: {0}", apiResponse?.Error ?? "Unknown error");
+                        this.LogVerbose("Bot API error - Payload: {0}, Response: {1}", json, responseBody);
                         lastSendSuccessfulBot = false;
                     }
                 }
                 else
                 {
                     this.LogError("Failed to send bot message. Status: {0}, Response: {1}", response.StatusCode, responseBody);
+                    this.LogVerbose("Bot API HTTP error - Payload: {0}, Status: {1}, Response: {2}", json, response.StatusCode, responseBody);
                     lastSendSuccessfulBot = false;
                 }
             }

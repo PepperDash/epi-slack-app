@@ -101,6 +101,79 @@ updatesecret:1 default botToken {UPDATED-BOT-TOKEN}
 | `defaultUsername`  | string | No                     | Override the default username for messages                      |
 | `defaultIconEmoji` | string | No                     | Override the default icon (e.g., `:robot_face:`)                |
 | `defaultChannel`   | string | No (Yes for Bot Token) | Default channel or user to send messages to                     |
+| `customPayloadTemplate` | string | No                | Custom JSON payload template for non-standard webhook endpoints |
+
+## Custom Payload Template
+
+The `customPayloadTemplate` property allows you to send custom JSON payloads to non-Slack webhook endpoints. This is useful when integrating with third-party systems that expect a specific JSON structure.
+
+### Message Format
+
+When using a custom payload template, messages sent from SIMPL should follow this format:
+
+```
+Suite {number} - {request_type}
+```
+
+Or with an additional message:
+
+```
+Suite {number} - {request_type} - {additional message}
+```
+
+### Available Tokens
+
+| Token | Description |
+|-------|-------------|
+| `{{suiteNumber}}` | Extracted suite number from the message |
+| `{{requestType}}` | Extracted request type from the message |
+| `{{message}}` | Additional text after the request type (if any) |
+| `{{rawMessage}}` | The original unparsed message |
+| `{{channel}}` | Value from `defaultChannel` config |
+| `{{username}}` | Value from `defaultUsername` config |
+| `{{iconEmoji}}` | Value from `defaultIconEmoji` config |
+
+### Example Configuration
+
+```json
+{
+    "key": "slack-app-1",
+    "name": "Slack App",
+    "type": "slackApp",
+    "group": "api",
+    "properties": {
+        "webhookUrl": {
+            "secret": {
+                "provider": "default",
+                "key": "slack_webhook_url"
+            }
+        },
+        "customPayloadTemplate": "{\"suite_number\": \"{{suiteNumber}}\", \"request_type\": \"{{requestType}}\", \"message\": \"{{message}}\"}"
+    }
+}
+```
+
+### Parsing Examples
+
+| SIMPL Message | suiteNumber | requestType | message |
+|---------------|-------------|-------------|---------|
+| `Suite 3 - coffee` | `3` | `coffee` | `` |
+| `Suite 1 - assistance` | `1` | `assistance` | `` |
+| `Suite 5 - help - Need towels` | `5` | `help` | `Need towels` |
+
+### Resulting Webhook Payload
+
+When sending `Suite 3 - coffee` with the example configuration above:
+
+```json
+{
+    "suite_number": "3",
+    "request_type": "coffee",
+    "message": ""
+}
+```
+
+> **Note:** When `customPayloadTemplate` is not configured, the standard Slack webhook payload format is used.
 
 ### Bridge
 

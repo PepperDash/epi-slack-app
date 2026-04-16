@@ -35,6 +35,23 @@ namespace PepperDash.Essentials.Plugins.Slack
         [JsonProperty("defaultIconEmoji")]
         public string DefaultIconEmoji { get; set; }
 
+        /// <summary>
+        /// Optional custom payload template for non-standard webhook endpoints.
+        /// Messages are parsed from format "Suite {number} - {request_type}" or "Suite {number} - {request_type} - {additional text}"
+        /// 
+        /// Supports token replacement:
+        /// - {{suiteNumber}} - Extracted suite number from the message
+        /// - {{requestType}} - Extracted request type from the message
+        /// - {{message}} - Additional text after request type (empty if none)
+        /// - {{rawMessage}} - The original unparsed message
+        /// - {{channel}}, {{username}}, {{iconEmoji}} - Config values
+        /// 
+        /// Example: "{\"suite_number\": \"{{suiteNumber}}\", \"request_type\": \"{{requestType}}\", \"message\": \"{{message}}\"}"
+        /// When set, this template is used instead of the standard Slack payload structure.
+        /// </summary>
+        [JsonProperty("customPayloadTemplate")]
+        public string CustomPayloadTemplate { get; set; }
+
         public SlackPropertiesConfig()
         {
         }

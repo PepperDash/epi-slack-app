@@ -21,6 +21,7 @@ namespace PepperDash.Essentials.Plugins.Slack
         internal readonly string defaultUsername;
         internal readonly string defaultChannel;
         internal readonly string defaultIconEmoji;
+        private readonly string customPayloadTemplate;
 
         private static readonly HttpClient httpClient = new HttpClient
         {
@@ -48,6 +49,11 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// Indicates if bot token is configured
         /// </summary>
         public bool BotTokenConfigured => !string.IsNullOrEmpty(botToken);
+
+        /// <summary>
+        /// Indicates if a custom payload template is configured
+        /// </summary>
+        public bool CustomPayloadTemplateConfigured => !string.IsNullOrEmpty(customPayloadTemplate);
 
         #region Webhook Feedbacks
 
@@ -95,6 +101,7 @@ namespace PepperDash.Essentials.Plugins.Slack
             defaultChannel = propertiesConfig.DefaultChannel;
             defaultUsername = propertiesConfig.DefaultUsername;
             defaultIconEmoji = propertiesConfig.DefaultIconEmoji;
+            customPayloadTemplate = propertiesConfig.CustomPayloadTemplate;
 
             // Webhook feedbacks
             IsBusyFeedback = new BoolFeedback(key + "-IsBusy", () => isBusyWebhook);
@@ -119,6 +126,10 @@ namespace PepperDash.Essentials.Plugins.Slack
             if (WebhookConfigured)
             {
                 this.LogDebug("Slack Webhook URL is configured");
+                if (CustomPayloadTemplateConfigured)
+                {
+                    this.LogDebug("Custom payload template is configured");
+                }
             }
 
             if (!BotTokenConfigured && !WebhookConfigured)
@@ -196,6 +207,108 @@ namespace PepperDash.Essentials.Plugins.Slack
             currentChannelWebhook = null;
             this.LogDebug("Webhook channel reset to default: {0}", defaultChannel ?? "(none)");
             CurrentChannelFeedback.FireUpdate();
+        }
+
+        /// <summary>
+        /// Sets the suite number for custom webhook payloads
+        /// <summary>
+        /// Parses a message in the format "Suite {number} - {request_type}" to extract components
+        /// </summary>
+        /// <param name="message">The message to parse</param>
+        /// <param name="suiteNumber">Output: the extracted suite number</param>
+        /// <param name="requestType">Output: the extracted request type</param>
+        /// <param name="remainingMessage">Output: any text after the request type (optional)</param>
+        private void ParseMessage(string message, out string suiteNumber, out string requestType, out string remainingMessage)
+        {
+            suiteNumber = string.Empty;
+            requestType = string.Empty;
+            remainingMessage = message ?? string.Empty;
+
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            // Expected format: "Suite {number} - {request_type}" or "Suite {number} - {request_type} - {additional text}"
+            // Example: "Suite 3 - coffee" or "Suite 1 - assistance - Please help"
+
+            var suitePrefix = "Suite ";
+            if (!message.StartsWith(suitePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                this.LogDebug("Message does not start with 'Suite ', using raw message");
+                return;
+            }
+
+            // Find the first " - " separator after "Suite "
+            var afterSuite = message.Substring(suitePrefix.Length);
+            var firstDashIndex = afterSuite.IndexOf(" - ", StringComparison.Ordinal);
+
+            if (firstDashIndex < 0)
+            {
+                this.LogDebug("No ' - ' separator found after suite number");
+                return;
+            }
+
+            // Extract suite number (everything between "Suite " and first " - ")
+            suiteNumber = afterSuite.Substring(0, firstDashIndex).Trim();
+
+            // Everything after the first " - "
+            var afterFirstDash = afterSuite.Substring(firstDashIndex + 3);
+
+            // Check if there's another " - " for additional message text
+            var secondDashIndex = afterFirstDash.IndexOf(" - ", StringComparison.Ordinal);
+
+            if (secondDashIndex >= 0)
+            {
+                // Format: "Suite X - request_type - additional message"
+                requestType = afterFirstDash.Substring(0, secondDashIndex).Trim();
+                remainingMessage = afterFirstDash.Substring(secondDashIndex + 3).Trim();
+            }
+            else
+            {
+                // Format: "Suite X - request_type"
+                requestType = afterFirstDash.Trim();
+                remainingMessage = string.Empty;
+            }
+
+            this.LogDebug("Parsed message - Suite: {0}, RequestType: {1}, Message: {2}",
+                suiteNumber, requestType, remainingMessage);
+        }
+
+        /// <summary>
+        /// Builds the webhook payload JSON from the custom template by replacing tokens
+        /// </summary>
+        /// <param name="message">The message text to send</param>
+        /// <returns>JSON string with tokens replaced</returns>
+        private string BuildPayloadFromTemplate(string message)
+        {
+            // Parse the message to extract suite number and request type
+            ParseMessage(message, out var suiteNumber, out var requestType, out var remainingMessage);
+
+            var result = customPayloadTemplate
+                .Replace("{{message}}", EscapeJsonString(remainingMessage))
+                .Replace("{{suiteNumber}}", EscapeJsonString(suiteNumber))
+                .Replace("{{requestType}}", EscapeJsonString(requestType))
+                .Replace("{{rawMessage}}", EscapeJsonString(message))
+                .Replace("{{channel}}", EscapeJsonString(GetCurrentChannelWebhook()))
+                .Replace("{{username}}", EscapeJsonString(defaultUsername ?? string.Empty))
+                .Replace("{{iconEmoji}}", EscapeJsonString(defaultIconEmoji ?? string.Empty));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Escapes special characters for JSON string values
+        /// </summary>
+        private string EscapeJsonString(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return string.Empty;
+
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
         }
 
         #endregion
@@ -295,15 +408,27 @@ namespace PepperDash.Essentials.Plugins.Slack
 
             try
             {
-                var payload = new SlackMessagePayload
-                {
-                    Text = message,
-                    Channel = GetCurrentChannelWebhook(),
-                    Username = defaultUsername,
-                    IconEmoji = defaultIconEmoji
-                };
+                string json;
 
-                var json = JsonConvert.SerializeObject(payload);
+                if (CustomPayloadTemplateConfigured)
+                {
+                    // Use custom template for non-standard webhook endpoints
+                    json = BuildPayloadFromTemplate(message);
+                    this.LogDebug("Using custom payload template");
+                }
+                else
+                {
+                    // Use standard Slack webhook payload
+                    var payload = new SlackMessagePayload
+                    {
+                        Text = message,
+                        Channel = GetCurrentChannelWebhook(),
+                        Username = defaultUsername,
+                        IconEmoji = defaultIconEmoji
+                    };
+                    json = JsonConvert.SerializeObject(payload);
+                }
+
                 this.LogDebug("Sending Slack message via webhook: {0}", json);
                 this.LogVerbose("Webhook request payload: {0}", json);
 

@@ -126,10 +126,15 @@ namespace PepperDash.Essentials.Plugins.Slack
             if (WebhookConfigured)
             {
                 this.LogDebug("Slack Webhook URL is configured");
-                if (CustomPayloadTemplateConfigured)
-                {
-                    this.LogDebug("Custom payload template is configured");
-                }
+            }
+
+            // Log custom payload template status
+            this.LogDebug("CustomPayloadTemplate value: '{0}'", customPayloadTemplate ?? "(null)");
+            this.LogDebug("CustomPayloadTemplateConfigured: {0}", CustomPayloadTemplateConfigured);
+
+            if (CustomPayloadTemplateConfigured)
+            {
+                this.LogDebug("Custom payload template is configured and will be used");
             }
 
             if (!BotTokenConfigured && !WebhookConfigured)
@@ -409,6 +414,8 @@ namespace PepperDash.Essentials.Plugins.Slack
             try
             {
                 string json;
+
+                this.LogDebug("CustomPayloadTemplateConfigured check: {0}", CustomPayloadTemplateConfigured);
 
                 if (CustomPayloadTemplateConfigured)
                 {

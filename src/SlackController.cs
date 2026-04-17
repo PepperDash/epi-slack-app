@@ -30,14 +30,14 @@ namespace PepperDash.Essentials.Plugins.Slack
 
         // Webhook state
         private string pendingMessageWebhook;
-        private bool isBusyWebhook;
-        private bool lastSendSuccessfulWebhook;
+        private volatile bool isBusyWebhook;
+        private volatile bool lastSendSuccessfulWebhook;
         private string currentChannelWebhook;
 
         // Bot state
         private string pendingMessageBot;
-        private bool isBusyBot;
-        private bool lastSendSuccessfulBot;
+        private volatile bool isBusyBot;
+        private volatile bool lastSendSuccessfulBot;
         private string currentChannelBot;
 
         /// <summary>
@@ -392,7 +392,12 @@ namespace PepperDash.Essentials.Plugins.Slack
 
         #region Webhook Async Methods
 
-        private async void SendWebhookMessageAsync(string message)
+        private void SendWebhookMessageAsync(string message)
+        {
+            _ = SendWebhookMessageInternalAsync(message);
+        }
+
+        private async Task SendWebhookMessageInternalAsync(string message)
         {
             if (!WebhookConfigured)
             {
@@ -473,7 +478,12 @@ namespace PepperDash.Essentials.Plugins.Slack
 
         #region Bot Async Methods
 
-        private async void SendBotMessageAsync(string message)
+        private void SendBotMessageAsync(string message)
+        {
+            _ = SendBotMessageInternalAsync(message);
+        }
+
+        private async Task SendBotMessageInternalAsync(string message)
         {
             if (!BotTokenConfigured)
             {

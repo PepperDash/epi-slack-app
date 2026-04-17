@@ -6,7 +6,7 @@
   
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
-    <RootNamespace>PepperDash.Essentials.Plugins.Slack.App</RootNamespace>
+    <RootNamespace>PepperDash.Essentials.Plugins.Slack</RootNamespace>
     <Deterministic>false</Deterministic>
     <AssemblyTitle>PepperDash.Essentials.Plugins.Slack.App</AssemblyTitle>
     <Company>PepperDash Technology</Company>
@@ -22,7 +22,7 @@
     <PackageTags>crestron 4series slack app</PackageTags>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup>
     <DefineConstants>$(DefineConstants);SERIES4</DefineConstants>
   </PropertyGroup>
 

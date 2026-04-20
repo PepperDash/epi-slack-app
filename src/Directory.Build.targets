@@ -11,7 +11,7 @@
   </ItemGroup>
   <Target Name="Create CPLZ" AfterTargets="Build;Rebuild" Condition="$(ProjectType) == 'ProgramLibrary'">
     <Message Text="Creating CPLZ"></Message>
-    <MakeDir Directories="$(PackageOutputPath)" Condition="!Exists($(PackageOutputPath))"></MakeDir>
+    <MakeDir Directories="$(PackageOutputPath)" Condition="!Exists('$(PackageOutputPath)')"></MakeDir>
     <ZipDirectory SourceDirectory="$(TargetDir)" DestinationFile="$(PackageOutputPath)\$(TargetName).$(Version).cplz" Overwrite="true"/>    
   </Target>
   <Target Name="Clean CPLZ" AfterTargets="AfterClean" Condition="$(ProjectType) == 'ProgramLibrary'">

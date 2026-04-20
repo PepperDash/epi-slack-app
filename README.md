@@ -139,7 +139,7 @@ Suite {number} - {request_type} - {additional message}
 {
     "key": "slack-app-1",
     "name": "Slack App",
-    "type": "slackApp",
+    "type": "slackWebhooks",
     "group": "api",
     "properties": {
         "webhookUrl": {

@@ -366,3 +366,106 @@ With a Bot Token, you can set the channel dynamically:
 - Bot tokens do not expire but can be revoked from the Slack App settings
 - Consider using different apps/tokens for different environments
 
+<!-- START Minimum Essentials Framework Versions -->
+### Minimum Essentials Framework Versions
+
+- 2.24.4
+<!-- END Minimum Essentials Framework Versions -->
+<!-- START Config Example -->
+### Config Example
+
+```json
+{
+    "key": "GeneratedKey",
+    "uid": 1,
+    "name": "GeneratedName",
+    "type": "SlackProperties",
+    "group": "Group",
+    "properties": {
+        "webhookUrl": "SampleString",
+        "botToken": "SampleString",
+        "defaultChannel": "SampleString",
+        "defaultUsername": "SampleString",
+        "defaultIconEmoji": "SampleString",
+        "customPayloadTemplate": "SampleString"
+    }
+}
+```
+<!-- END Config Example -->
+<!-- START Supported Types -->
+
+<!-- END Supported Types -->
+<!-- START Join Maps -->
+### Join Maps
+
+#### Digitals
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 2 | R | Pulse to send the pending webhook message to Slack |
+| 2 | R | High when a webhook message is being sent |
+| 3 | R | High if the last webhook message send was successful |
+| 4 | R | Pulse to reset webhook channel to default configured channel |
+| 7 | R | Pulse to send the pending bot message via Bot Token |
+| 7 | R | High when a bot message is being sent |
+| 8 | R | High if the last bot message send was successful |
+| 9 | R | Pulse to reset bot channel to default configured channel |
+
+#### Serials
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Device Name |
+| 2 | R | Set the webhook message text to send (use SendMessageWebhook digital to trigger) |
+| 3 | R | Send a webhook message directly (sends immediately when string is received) |
+| 4 | R | Webhook channel override (set to change channel, feedback shows current) |
+| 7 | R | Set the bot message text to send (use SendMessageBot digital to trigger) |
+| 8 | R | Send a message directly via Bot (sends immediately when string is received) |
+| 9 | R | Bot channel/user override (set to change target, feedback shows current) |
+<!-- END Join Maps -->
+<!-- START Interfaces Implemented -->
+
+<!-- END Interfaces Implemented -->
+<!-- START Base Classes -->
+### Base Classes
+
+- DeviceStateMessageBase
+- JoinMapBaseAdvanced
+- MessengerBase
+- EssentialsBridgeableDevice
+<!-- END Base Classes -->
+<!-- START Public Methods -->
+### Public Methods
+
+- public void SendMessage(string message, string channel = null)
+- public void SendMessage(string message, string channel = null)
+- public string GetCurrentChannelWebhook()
+- public void SetMessageWebhook(string message)
+- public void SendMessageWebhook()
+- public void SendMessageDirectWebhook(string message)
+- public void SetChannelWebhook(string channel)
+- public void ResetChannelWebhook()
+- public string GetCurrentChannelBot()
+- public void SetMessageBot(string message)
+- public void SendMessageBot()
+- public void SendMessageDirectBot(string message)
+- public void SetChannelBot(string channel)
+- public void ResetChannelBot()
+<!-- END Public Methods -->
+<!-- START Bool Feedbacks -->
+### Bool Feedbacks
+
+- IsBusyFeedback
+- LastSendSuccessfulFeedback
+- IsBusyBotFeedback
+- LastSendSuccessfulBotFeedback
+<!-- END Bool Feedbacks -->
+<!-- START Int Feedbacks -->
+
+<!-- END Int Feedbacks -->
+<!-- START String Feedbacks -->
+### String Feedbacks
+
+- CurrentChannelFeedback
+- CurrentChannelBotFeedback
+<!-- END String Feedbacks -->

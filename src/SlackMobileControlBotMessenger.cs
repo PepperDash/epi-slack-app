@@ -17,12 +17,14 @@ namespace PepperDash.Essentials.Plugins.Slack
 
         public void SendMessage(string message, string channel = null)
         {
-            if (string.IsNullOrEmpty(channel))
-            {
-                channel = controller.GetCurrentChannelBot();
-            }
-            this.LogInformation("SlackMobileControlBotMessenger: Sending message to channel {0}", channel);
+            var targetChannel = controller.GetCurrentChannelBot();
 
+            if (!string.IsNullOrEmpty(channel) && channel != targetChannel)
+            {
+                this.LogWarning("SlackMobileControlBotMessenger: Requested channel '{0}' ignored; bot sends to configured channel '{1}'", channel, targetChannel);
+            }
+
+            this.LogInformation("SlackMobileControlBotMessenger: Sending message to channel {0}", targetChannel);
             controller.SendMessageDirectBot(message);
         }
 

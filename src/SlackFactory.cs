@@ -31,6 +31,11 @@ namespace PepperDash.Essentials.Plugins.Slack
                 Debug.LogMessage(LogEventLevel.Warning, "No webhook URL or bot token configured for device: {0}", dc.Key);
             }
 
+            if (!string.IsNullOrEmpty(propertiesConfig.WebhookUrl) && !string.IsNullOrEmpty(propertiesConfig.BotToken))
+            {
+                Debug.LogMessage(LogEventLevel.Warning, "Both webhook URL and bot token configured for device: {0}. Consider using only one.", dc.Key);
+            }
+
             return new SlackController(dc.Key, dc.Name, propertiesConfig);
         }
     }

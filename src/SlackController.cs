@@ -106,12 +106,12 @@ namespace PepperDash.Essentials.Plugins.Slack
             // Webhook feedbacks
             IsBusyFeedback = new BoolFeedback(key + "-IsBusy", () => isBusyWebhook);
             LastSendSuccessfulFeedback = new BoolFeedback(key + "-LastSendSuccessful", () => lastSendSuccessfulWebhook);
-            CurrentChannelFeedback = new StringFeedback(key + "-Channel", () => GetCurrentChannelWebhook());
+            CurrentChannelFeedback = new StringFeedback(key + "-Channel", () => GetCurrentChannelWebhook() ?? string.Empty);
 
             // Bot feedbacks
             IsBusyBotFeedback = new BoolFeedback(key + "-IsBusyBot", () => isBusyBot);
             LastSendSuccessfulBotFeedback = new BoolFeedback(key + "-LastSendSuccessfulBot", () => lastSendSuccessfulBot);
-            CurrentChannelBotFeedback = new StringFeedback(key + "-ChannelBot", () => GetCurrentChannelBot());
+            CurrentChannelBotFeedback = new StringFeedback(key + "-ChannelBot", () => GetCurrentChannelBot() ?? string.Empty);
         }
 
         public override void Initialize()
@@ -129,7 +129,6 @@ namespace PepperDash.Essentials.Plugins.Slack
             }
 
             // Log custom payload template status
-            this.LogDebug("CustomPayloadTemplate value: '{0}'", customPayloadTemplate ?? "(null)");
             this.LogDebug("CustomPayloadTemplateConfigured: {0}", CustomPayloadTemplateConfigured);
 
             if (CustomPayloadTemplateConfigured)
@@ -151,7 +150,10 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public string GetCurrentChannelWebhook()
         {
-            return !string.IsNullOrEmpty(currentChannelWebhook) ? currentChannelWebhook : defaultChannel ?? string.Empty;
+            if (!string.IsNullOrEmpty(currentChannelWebhook))
+                return currentChannelWebhook;
+
+            return !string.IsNullOrEmpty(defaultChannel) ? defaultChannel : null;
         }
 
         /// <summary>
@@ -214,8 +216,6 @@ namespace PepperDash.Essentials.Plugins.Slack
             CurrentChannelFeedback.FireUpdate();
         }
 
-        /// <summary>
-        /// Sets the suite number for custom webhook payloads
         /// <summary>
         /// Parses a message in the format "Suite {number} - {request_type}" to extract components
         /// </summary>
@@ -325,7 +325,10 @@ namespace PepperDash.Essentials.Plugins.Slack
         /// </summary>
         public string GetCurrentChannelBot()
         {
-            return !string.IsNullOrEmpty(currentChannelBot) ? currentChannelBot : defaultChannel ?? string.Empty;
+            if (!string.IsNullOrEmpty(currentChannelBot))
+                return currentChannelBot;
+
+            return !string.IsNullOrEmpty(defaultChannel) ? defaultChannel : null;
         }
 
         /// <summary>
@@ -441,7 +444,6 @@ namespace PepperDash.Essentials.Plugins.Slack
                     json = JsonConvert.SerializeObject(payload);
                 }
 
-                this.LogDebug("Sending Slack message via webhook: {0}", json);
                 this.LogVerbose("Webhook request payload: {0}", json);
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");

@@ -17,12 +17,14 @@ namespace PepperDash.Essentials.Plugins.Slack
 
         public void SendMessage(string message, string channel = null)
         {
-            if (string.IsNullOrEmpty(channel))
-            {
-                channel = controller.GetCurrentChannelWebhook();
-            }
-            this.LogInformation("SlackMobileControlWebhookMessenger: Sending message to channel {0}", channel);
+            var targetChannel = controller.GetCurrentChannelWebhook();
 
+            if (!string.IsNullOrEmpty(channel) && channel != targetChannel)
+            {
+                this.LogWarning("SlackMobileControlWebhookMessenger: Requested channel '{0}' ignored; webhook sends to configured channel '{1}'", channel, targetChannel);
+            }
+
+            this.LogInformation("SlackMobileControlWebhookMessenger: Sending message to channel {0}", targetChannel);
             controller.SendMessageDirectWebhook(message);
         }
 
